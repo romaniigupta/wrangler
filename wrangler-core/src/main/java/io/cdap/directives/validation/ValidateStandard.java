@@ -1,19 +1,18 @@
-/*
- *  Copyright © 2019 Cask Data, Inc.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License"); you may not
- *  use this file except in compliance with the License. You may obtain a copy of
- *  the License at
- *
- *  http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- *  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- *  License for the specific language governing permissions and limitations under
- *  the License.
- */
-
+// <!--
+//   ~ Copyright © 2017-2019 Cask Data, Inc.
+//   ~
+//   ~ Licensed under the Apache License, Version 2.0 (the "License"); you may not
+//   ~ use this file except in compliance with the License. You may obtain a copy of
+//   ~ the License at
+//   ~
+//   ~ http://www.apache.org/licenses/LICENSE-2.0
+//   ~
+//   ~ Unless required by applicable law or agreed to in writing, software
+//   ~ distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+//   ~ WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+//   ~ License for the specific language governing permissions and limitations under
+//   ~ the License.
+//   -->
 package io.cdap.directives.validation;
 
 import com.google.gson.Gson;
@@ -38,28 +37,38 @@ import io.cdap.wrangler.api.parser.TokenType;
 import io.cdap.wrangler.api.parser.UsageDefinition;
 import io.cdap.wrangler.utils.Manifest;
 import io.cdap.wrangler.utils.Manifest.Standard;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URISyntaxException;
 import java.nio.file.Paths;
+import java.security.CodeSource;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Formatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-
 /**
- * A directive for validating data against a number of built-in data models.
+ * A directive that checks a column against a standard schema.
+This is used for validating data quality in Wrangler pipelines.
  */
 @Plugin(type = Directive.TYPE)
 @Name(ValidateStandard.NAME)
 @Categories(categories = {"data-quality"})
 @Description("Checks a column against a standard schema")
-public class ValidateStandard implements Directive {
 
+
+public class ValidateStandard implements Directive {
   public static final String NAME = "validate-standard";
   static final String SCHEMAS_RESOURCE_PATH = "schemas/";
   static final String MANIFEST_PATH = SCHEMAS_RESOURCE_PATH + "manifest.json";
@@ -205,5 +214,54 @@ public class ValidateStandard implements Directive {
   @Override
   public void destroy() {
     // no-op
+  }
+public static Map<String, Standard> getSpecsInArchive() {
+    Map<String, Standard> schemas = new HashMap<>();
+    try {
+        CodeSource src = ValidateStandard.class.getProtectionDomain().getCodeSource();
+        if (src != null) {
+            File root = new File(src.getLocation().toURI());
+            File schemasRoot = new File(root, ValidateStandard.SCHEMAS_RESOURCE_PATH);
+
+            if (!schemasRoot.isDirectory()) {
+                LOG.error("Schemas root {} was not a directory", schemasRoot.getPath());
+                return schemas; // Return empty map instead of throwing an error
+            }
+
+            for (File f : schemasRoot.listFiles()) {
+                if (f.toPath().endsWith(ValidateStandard.MANIFEST_PATH)) {
+                    continue;
+                }
+
+                String hash = calcHash(new FileInputStream(f));
+                schemas.put(
+                    FilenameUtils.getBaseName(f.getName()),
+                    new Standard(hash, FilenameUtils.getExtension(f.getName()))
+                );
+            }
+        }
+    } catch (URISyntaxException e) {
+        LOG.error("Invalid URI for code source", e);
+        return schemas; // Return empty map or handle gracefully
+    } catch (IOException | NoSuchAlgorithmException e) {
+        LOG.error("Error reading the specs from archive", e);
+        return schemas; // Return empty map in case of error
+    }
+    return schemas;
+}
+
+
+  
+
+  private static String calcHash(InputStream is) throws IOException, java.security.NoSuchAlgorithmException {
+    byte[] bytes = IOUtils.toByteArray(is);
+    MessageDigest digest = MessageDigest.getInstance("SHA-256");
+    byte[] hash = digest.digest(bytes);
+
+    Formatter formatter = new Formatter();
+    for (byte b : hash) {
+      formatter.format("%02x", b);
+    }
+    return formatter.toString();
   }
 }

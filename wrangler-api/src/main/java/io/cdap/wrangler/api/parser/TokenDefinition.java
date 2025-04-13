@@ -92,3 +92,4 @@ public final class TokenDefinition implements Serializable {
   }
 
 }
+

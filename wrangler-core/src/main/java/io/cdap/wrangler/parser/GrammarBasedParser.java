@@ -13,10 +13,10 @@
  *  License for the specific language governing permissions and limitations under
  *  the License.
  */
-
 package io.cdap.wrangler.parser;
 
 import com.google.common.base.Joiner;
+
 import io.cdap.wrangler.api.Arguments;
 import io.cdap.wrangler.api.Directive;
 import io.cdap.wrangler.api.DirectiveContext;
@@ -25,6 +25,11 @@ import io.cdap.wrangler.api.DirectiveNotFoundException;
 import io.cdap.wrangler.api.DirectiveParseException;
 import io.cdap.wrangler.api.RecipeException;
 import io.cdap.wrangler.api.RecipeParser;
+import io.cdap.wrangler.api.parser.ByteSize;
+import io.cdap.wrangler.api.parser.ByteSizeArgContext;
+import io.cdap.wrangler.api.parser.TimeDuration;
+import io.cdap.wrangler.api.parser.TimeDurationArgContext;
+import io.cdap.wrangler.api.parser.Token;
 import io.cdap.wrangler.api.parser.UsageDefinition;
 import io.cdap.wrangler.registry.DirectiveInfo;
 import io.cdap.wrangler.registry.DirectiveRegistry;
@@ -100,4 +105,12 @@ public class GrammarBasedParser implements RecipeParser {
       throw new RecipeException(e.getMessage(), e);
     }
   }
+  public Token visitByteSizeArg(ByteSizeArgContext ctx) {
+        return new ByteSize(ctx.getText());
+    }
+
+    public Token visitTimeDurationArg(TimeDurationArgContext ctx) {
+        return new TimeDuration(ctx.getText());
+    }
+
 }

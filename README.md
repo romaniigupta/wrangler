@@ -19,6 +19,30 @@ are manually created.
   * [Data Prep Cheatsheet](wrangler-docs/cheatsheet.md)
 
 ## New Features
+## New Features: Byte Size and Time Duration Units Parsers
+
+The Wrangler library has been enhanced to handle new unit types for byte sizes and time durations. These enhancements allow users to easily parse and convert byte sizes (e.g., KB, MB) and time durations (e.g., ms, s) within Wrangler recipes. This update simplifies operations involving data size and time intervals, eliminating the need for complex manual conversions.
+
+New features:
+- **Byte Size Parser**: Supports units such as KB, MB, GB, etc.
+- **Time Duration Parser**: Supports units such as ms, s, minutes, etc.
+## Usage of Byte Size and Time Duration Parsers
+
+The `aggregate-stats` directive now supports byte size and time duration columns. You can aggregate the total or average size and time in various units.
+
+### Example Recipe:
+To aggregate data transfer size (in MB) and response time (in seconds):
+
+```plaintext
+aggregate-stats :data_transfer_size :response_time total_size_mb total_time_sec
+
+## Testing New Features
+
+To test the functionality of the new parsers, you can use the following test recipe:
+
+### Test Recipe:
+```plaintext
+aggregate-stats :data_transfer_size :response_time total_size_mb total_time_sec
 
 More [here](wrangler-docs/upcoming-features.md) on upcoming features.
 
